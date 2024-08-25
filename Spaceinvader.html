@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Invaders</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: black;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        #gameArea {
+            width: 1024px;
+            height: 768px;
+            position: relative;
+            overflow: hidden;
+            background-image: url("https://www.brabantserfgoed.nl/image/2018/5/2/24astjan6.jpg%28%29%28B20EB3096AB6E64FF7275EEFE9B59847%29.jpg");
+            background-size: cover;
+        }
+        .player, .invader, .bullet {
+            position: absolute;
+            background-size: cover;
+        }
+        .player {
+            width: 50px;
+            height: 50px;
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="white" d="M12 2L1 21h22L12 2zM12 7l5 9H7l5-9z"/></svg>');
+            bottom: 10px;
+        }
+        .invader {
+            width: 60px;
+            height: 60px;
+            background-image: url("https://github.com/DarkQQ007/DarkQQ007.github.io/blob/main/durpy%20black%20cat.png?raw=true");
+        }
+        .bullet {
+            width: 30px;
+            height: 30px;
+            background-image: url("https://github.com/DarkQQ007/DarkQQ007.github.io/blob/main/HeartBullet.png?raw=true");
+        }
+        #scoreBoard {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameArea">
+        <div id="scoreBoard">Score: 0</div>
+        <div class="player"></div>
+    </div>
+    <script>
+        const gameArea = document.getElementById('gameArea');
+        const scoreBoard = document.getElementById('scoreBoard');
+        const player = document.querySelector('.player');
+        let playerPos = gameArea.offsetWidth / 2 - player.offsetWidth / 2;
+        let score = 0;
+        player.style.left = playerPos + 'px';
+
+        const keyStates = {};
+        document.addEventListener('keydown', (event) => {
+            keyStates[event.key] = true;
+        });
+        document.addEventListener('keyup', (event) => {
+            keyStates[event.key] = false;
+        });
+
+        const invaders = [];
+        const bullets = [];
+        let gameInterval, invaderInterval;
+
+        function updatePlayerPosition() {
+            const moveStep = 30; 
+            if (keyStates['ArrowLeft'] && playerPos > 0) {
+                playerPos -= moveStep;
+            }
+            if (keyStates['ArrowRight'] && playerPos < gameArea.offsetWidth - player.offsetWidth) {
+                playerPos += moveStep;
+            }
+            player.style.left = playerPos + 'px';
+            if (keyStates[' ']) {
+                fireBullet();
+            }
+        }
+
+        function fireBullet() {
+            const lastBullet = bullets[bullets.length - 1];
+            if (!lastBullet || parseInt(lastBullet.style.bottom) > 75) {
+                const bullet = document.createElement('div');
+                bullet.classList.add('bullet');
+                bullet.style.left = playerPos + player.offsetWidth / 2 - 15 + 'px';
+                bullet.style.bottom = '30px';
+                gameArea.appendChild(bullet);
+                bullets.push(bullet);
+            }
+        }
+
+        function moveBullets() {
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                let bullet = bullets[i];
+                let bulletBottom = parseInt(bullet.style.bottom, 10);
+                bulletBottom += 10; 
+                bullet.style.bottom = bulletBottom + 'px';
+                if (bulletBottom > gameArea.offsetHeight) {
+                    bullet.remove();
+                    bullets.splice(i, 1);
+                }
+            }
+        }
+
+        function spawnInvader() {
+            const invader = document.createElement('div');
+            invader.classList.add('invader');
+            invader.style.left = Math.random() * (gameArea.offsetWidth - 60) + 'px'; // Random horizontal position
+            invader.style.top = '10px'; // Start at the top of the game area
+            gameArea.appendChild(invader);
+            invaders.push(invader);
+        }
+
+        function moveInvaders() {
+            for (const invader of invaders) {
+                let invaderPos = parseInt(invader.style.top, 10);
+                invaderPos += 5; 
+                invader.style.top = invaderPos + 'px';
+                if (invaderPos > gameArea.offsetHeight - 70) {
+                    gameOver();
+                }
+            }
+        }
+
+        function checkCollisions() {
+            bullets.forEach((bullet, bulletIndex) => {
+                const bulletRect = bullet.getBoundingClientRect();
+
+                invaders.forEach((invader, invaderIndex) => {
+                    const invaderRect = invader.getBoundingClientRect();
+
+                    if (bulletRect.left < invaderRect.right &&
+                        bulletRect.right > invaderRect.left &&
+                        bulletRect.top < invaderRect.bottom &&
+                        bulletRect.bottom > invaderRect.top) {
+                        invader.remove();
+                        bullet.remove();
+                        bullets.splice(bulletIndex, 1);
+                        invaders.splice(invaderIndex, 1);
+                        score += 1;
+                        scoreBoard.textContent = "Score: " + score;
+                        spawnInvader(); // Spawn a new invader when one is destroyed
+                    }
+                });
+            });
+        }
+        function CompleteGame() {
+            if(score >= 50){
+                clearInterval(gameInterval);
+                clearInterval(invaderInterval);
+                alert("Goed gedaan! De kittens zijn je erg dankbaar voor al je liefde! \n\n De Code is 'Bosche Broek'");
+            }
+            CompleteGame();
+        }
+
+        function gameLoop() {
+            updatePlayerPosition();
+            moveBullets();
+            moveInvaders();
+            checkCollisions();
+            CompleteGame();
+        }
+
+        function startGame() {
+            if (confirm('Welkom bij Kitten invader.\nGeef alle kittens wat liefde voordat ze weg zijn! \n\n Om dit spel te voltooien moet je 50 kittens liefde gegeven hebben. \n\n [Controls]\n Gebruik de pijltjes knoppen om naar links en rechts te bewegen.\n Liefde geef je door op de spatie-balk te drukken.')) {
+                invaders.forEach(inv => inv.remove());
+                bullets.forEach(bul => bul.remove());
+                invaders.length = 0;
+                bullets.length = 0;
+            }
+            score = 0;
+            scoreBoard.textContent = "Score: 0";
+            for (let i = 0; i < 5; i++) {
+                spawnInvader(); // Initial spawn of invaders
+            }
+            gameInterval = setInterval(gameLoop, 100);
+            invaderInterval = setInterval(moveInvaders, 1000); 
+        }
+
+        function gameOver() {
+            clearInterval(gameInterval);
+            clearInterval(invaderInterval);
+            alert('Game Over! Your score was: ' + score);
+            if (confirm('Restart Game?')) {
+                invaders.forEach(inv => inv.remove());
+                bullets.forEach(bul => bul.remove());
+                invaders.length = 0;
+                bullets.length = 0;
+                startGame(); // Restart game
+            }
+        }
+
+        startGame();
+    </script>
+</body>
+</html>
